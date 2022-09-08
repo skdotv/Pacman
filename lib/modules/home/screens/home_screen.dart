@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:testgame/modules/home/widgets/ghost.dart';
 import '../../../contants/directions.dart';
 import '../../../contants/layout_constants.dart';
+import '../../../services/shortest_path.dart';
 import '../widgets/path.dart';
 import '../widgets/pixel.dart';
 import '../widgets/player.dart';
@@ -36,6 +38,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int testNumber = 0;
   int playerIndexX = -1;
   int playerIndexY = -1;
+  ShortestPath shortestPath = ShortestPath();
+  List<String> path = [];
+  int ghostX = 3;
+  int ghostY = 6;
 
   @override
   void initState() {
@@ -44,6 +50,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void initialseValue() {
+    playerIndexX = row - 2;
+    playerIndexY = 1;
     numbersInRow = 11;
     player = numbersInRow * 15 + 1;
     ghost = numbersInRow * 7 + 4;
@@ -56,10 +64,13 @@ class _HomeScreenState extends State<HomeScreen> {
     pathArray.add(player);
     pathArray.add(ghost);
     calcMaxScore();
+    path = shortestPath.findRoute(Barrier.barrierIndexes2DArray, ghostX, ghostY,
+        playerIndexX, playerIndexY);
   }
 
   @override
   Widget build(BuildContext context) {
+    print(path);
     return RawKeyboardListener(
         focusNode: FocusNode(),
         onKey: (RawKeyEvent event) {
@@ -167,14 +178,20 @@ class _HomeScreenState extends State<HomeScreen> {
           innerColor: Colors.deepPurple[900]!,
           outerColor: Colors.deepPurple[800]!,
         );
-      // Path has Food
-      case 1:
-        return MyPath(
-          innerColor: Colors.yellow[900]!,
-          outerColor: Colors.black,
-        );
 
       default:
+        // Path has Food
+        // if (mapArray[x][y] == 1) {
+        //   return MyPath(
+        //     innerColor: Colors.yellow[900]!,
+        //     outerColor: Colors.black,
+        //     child: Text(
+        //       "$x,$y",
+        //       style: TextStyle(fontSize: 10),
+        //     ),
+        //   );
+        // }
+
         if (score == maxScore) {
           gameStop();
           // showFinalScore();
@@ -186,13 +203,32 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Player(
                 closeMouth: mouthClose,
               ));
-        } else {
-          // Path with no food
-          return const MyPath(
-            innerColor: Colors.black,
-            outerColor: Colors.black,
-          );
+        } else if (x == ghostX && y == ghostY) {
+          {
+            return const Ghost();
+          }
         }
+
+        return MyPath(
+          innerColor: Colors.black,
+          outerColor: Colors.black,
+          child: Text(
+            "$x,$y",
+            style: TextStyle(fontSize: 10),
+          ),
+        );
+
+      // else {
+      //   // Path with no food
+      //   return MyPath(
+      //     innerColor: Colors.black,
+      //     outerColor: Colors.black,
+      //     child: Text(
+      //       "$x,$y",
+      //       style: TextStyle(fontSize: 10),
+      //     ),
+      //   );
+      // }
     }
   }
 
@@ -203,6 +239,7 @@ class _HomeScreenState extends State<HomeScreen> {
       isGameStart = !isGameStart;
       // to remove intial food
       mapArray[playerIndexX][playerIndexY] = 0;
+      moveGhost();
     });
   }
 
@@ -256,6 +293,21 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     setState(() {
       maxScore = count;
+    });
+  }
+
+  moveGhost() {
+    int pathIndex = 0;
+    Timer timer;
+    timer = Timer.periodic(const Duration(milliseconds: 180), (_) {
+      List<String> currIndex = path[pathIndex].split(",");
+      setState(() {
+        ghostX = int.parse(currIndex[0]);
+        ghostY = int.parse(currIndex[1]);
+        if (pathIndex < path.length - 1) {
+          pathIndex += 1;
+        }
+      });
     });
   }
 
@@ -314,55 +366,4 @@ class _HomeScreenState extends State<HomeScreen> {
       eatFood(playerIndexX, playerIndexY);
     });
   }
-
-// Future<void> showFinalScore() async {
-  //   await showDialog(
-  //       context: context,
-  //       builder: (BuildContext context) {
-  //         return AlertDialog(
-  //           // backgroundColor: Colors.deepPurpleAccent,
-  //           title: Text(
-  //             "Winner ",
-  //             style: TextStyle(
-  //               fontSize: 20,
-  //               fontWeight: FontWeight.bold,
-  //               color: Colors.yellow.shade800,
-  //             ),
-  //           ),
-  //           actionsAlignment: MainAxisAlignment.center,
-  //           actions: [
-  //             TextButton(
-  //               style: ButtonStyle(
-  //                 backgroundColor: MaterialStateProperty.all(Colors.green),
-  //               ),
-  //               onPressed: () {
-  //                 Navigator.pop(context);
-  //                 startgame();
-  //               },
-  //               child: const Text(
-  //                 "Restart",
-  //                 style: TextStyle(
-  //                   fontSize: 18,
-  //                 ),
-  //               ),
-  //             ),
-  //             TextButton(
-  //               style: ButtonStyle(
-  //                 backgroundColor: MaterialStateProperty.all(Colors.red),
-  //               ),
-  //               onPressed: () {
-  //                 Navigator.pop(context);
-  //               },
-  //               child: const Text(
-  //                 "Close",
-  //                 style: TextStyle(
-  //                   fontSize: 18,
-  //                 ),
-  //               ),
-  //             )
-  //           ],
-  //         );
-  //       });
-  // }
-
 }
